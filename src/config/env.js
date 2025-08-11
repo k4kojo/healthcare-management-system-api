@@ -20,4 +20,5 @@ export const {
   TWILIO_PHONE_NUMBER,
   ARCJET_KEY,
   ARCJET_ENV,
+  API_URL
 } = process.env;

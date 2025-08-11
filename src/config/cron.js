@@ -1,5 +1,6 @@
 import cron from 'cron';
 import https from 'https';
+import { API_URL } from './env.js';
 
 const job = new cron.CronJob('*/14 * * * *', () => {
   https.get(API_URL, (res) => {
