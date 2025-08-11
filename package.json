@@ -1,0 +1,44 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "seed": "node src/db/seeds/index.js",
+    "seed:dev": "npm run seed",
+    "seed:test": "npm run seed"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@arcjet/inspect": "^1.0.0-beta.9",
+    "@arcjet/node": "^1.0.0-beta.9",
+    "@neondatabase/serverless": "^1.0.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "cron": "^4.3.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.3",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.5",
+    "pg": "^8.16.3",
+    "twilio": "^5.8.0",
+    "uuid": "^11.1.0",
+    "zod": "^4.0.10"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "cross-env": "^10.0.0",
+    "drizzle-kit": "^0.31.4",
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4"
+  }
+}
