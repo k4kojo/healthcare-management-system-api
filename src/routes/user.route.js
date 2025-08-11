@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
+  appleSignIn,
   deleteUserById,
   getAllUsers,
   getUserById,
+  googleSignIn,
   requestPasswordReset,
   resendResetToken,
   resendVerification,
@@ -28,6 +30,8 @@ userRouter.post("/sign-up", validateBody(signUpSchema), signUp);
 userRouter.get("/verify-email", verifyEmail);
 userRouter.get("/resend-verification", resendVerification);
 userRouter.post("/sign-in", validateBody(signInSchema), signIn);
+userRouter.post("/oauth/google", googleSignIn);
+userRouter.post("/oauth/apple", appleSignIn);
 
 // Protected routes
 userRouter.get("/", authenticateToken, restrictToRoles("admin"), getAllUsers);

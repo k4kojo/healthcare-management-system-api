@@ -1,10 +1,12 @@
+import appleSignin from "apple-signin-auth";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { and, eq, gt, isNotNull } from "drizzle-orm";
+import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/db.js";
-import { JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from "../config/env.js";
+import { APPLE_CLIENT_ID, GOOGLE_CLIENT_IDS, JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from "../config/env.js";
 import { users } from "../db/schema.js";
 import notificationService from "../services/notifications/index.js";
 import { NotificationType } from "../services/notifications/types.js";
@@ -628,5 +630,115 @@ export const deleteUserById = async (req, res) => {
       stack: error.stack,
     });
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ---- OAuth Providers ----
+
+const parseGoogleClientIds = () => {
+  if (!GOOGLE_CLIENT_IDS) return [];
+  try {
+    return JSON.parse(GOOGLE_CLIENT_IDS);
+  } catch {
+    return [];
+  }
+};
+
+const googleClients = parseGoogleClientIds().map((cid) => new OAuth2Client(cid));
+
+export const googleSignIn = async (req, res) => {
+  try {
+    const { idToken } = req.body; // Google ID token from client
+    if (!idToken) return res.status(400).json({ error: "Missing idToken" });
+
+    // Verify against any configured client id
+    let payload = null;
+    for (const client of googleClients) {
+      try {
+        const ticket = await client.verifyIdToken({ idToken, audience: client._clientId });
+        payload = ticket.getPayload();
+        break;
+      } catch {}
+    }
+    if (!payload) return res.status(401).json({ error: "Invalid Google token" });
+
+    const email = payload.email;
+    if (!email) return res.status(400).json({ error: "Google account has no email" });
+
+    let [user] = await db.select().from(users).where(eq(users.email, email));
+    if (!user) {
+      const userId = uuidv4();
+      const [created] = await db
+        .insert(users)
+        .values({
+          userId,
+          firstName: payload.given_name || "",
+          lastName: payload.family_name || "",
+          email,
+          password: await bcrypt.hash(uuidv4(), 8),
+          phoneNumber: "",
+          isVerified: true,
+          role: "patient",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      user = created;
+    }
+
+    const token = jwt.sign(
+      { userId: user.userId, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({ token, user: { ...user, password: undefined } });
+  } catch (error) {
+    res.status(500).json({ error: "Google sign-in failed" });
+  }
+};
+
+export const appleSignIn = async (req, res) => {
+  try {
+    const { identityToken } = req.body; // Apple identity token (JWT)
+    if (!identityToken) return res.status(400).json({ error: "Missing identityToken" });
+
+    const decoded = await appleSignin.verifyIdToken(identityToken, {
+      audience: APPLE_CLIENT_ID,
+    });
+
+    const email = decoded.email || req.body.email; // Apple might redact email
+    if (!email) return res.status(400).json({ error: "Apple account has no email" });
+
+    let [user] = await db.select().from(users).where(eq(users.email, email));
+    if (!user) {
+      const userId = uuidv4();
+      const [created] = await db
+        .insert(users)
+        .values({
+          userId,
+          firstName: req.body.firstName || "",
+          lastName: req.body.lastName || "",
+          email,
+          password: await bcrypt.hash(uuidv4(), 8),
+          phoneNumber: "",
+          isVerified: true,
+          role: "patient",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      user = created;
+    }
+
+    const token = jwt.sign(
+      { userId: user.userId, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({ token, user: { ...user, password: undefined } });
+  } catch (error) {
+    res.status(500).json({ error: "Apple sign-in failed" });
   }
 };

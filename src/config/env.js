@@ -22,3 +22,6 @@ export const {
   ARCJET_ENV,
   API_URL
 } = process.env;
+
+// Optional OAuth provider configuration
+export const { GOOGLE_CLIENT_IDS, APPLE_CLIENT_ID } = process.env;
