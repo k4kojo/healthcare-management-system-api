@@ -13,6 +13,7 @@ import {
   signUp,
   updateUserById,
   verifyEmail,
+  verifyResetToken,
 } from "../controllers/auth.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import { checkUserOwnership } from "../middlewares/user/ownershipCheck.middleware.js";
@@ -56,5 +57,6 @@ userRouter.delete(
 userRouter.post("/request-password-reset", requestPasswordReset);
 userRouter.post("/reset-password", resetPassword);
 userRouter.post("/resend-request-password-reset", resendResetToken);
+userRouter.get("/verify-reset-token", verifyResetToken);
 
 export default userRouter;

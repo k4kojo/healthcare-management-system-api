@@ -431,6 +431,47 @@ export const resetPassword = async (req, res) => {
 };
 
 /**
+ * Verifies a password reset token without changing the password.
+ *
+ * Expects query params: email and token (or code). Returns 200 if valid.
+ */
+export const verifyResetToken = async (req, res) => {
+  try {
+    const { email, token, code } = req.query;
+    const provided = token || code;
+    if (!email || !provided) {
+      return res.status(400).json({ error: "Email and token required" });
+    }
+
+    // Find user with active reset token by email
+    const usersFound = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          isNotNull(users.resetToken),
+          gt(users.resetTokenExpiry, new Date()),
+          eq(users.email, email)
+        )
+      );
+
+    if (usersFound.length === 0) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    const user = usersFound[0];
+    const tokenValid = await bcrypt.compare(provided, user.resetToken);
+    if (!tokenValid) {
+      return res.status(400).json({ error: "Invalid token" });
+    }
+
+    return res.json({ message: "Token is valid" });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * Resends a password reset token.
  *
  * This function finds a user by email and, if found, generates a new
