@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { chatMessages } from "../db/schema/chatMessages.js";
 
@@ -19,6 +19,24 @@ export const getChatMessagesById = async (req, res) => {
     res.json(req.message);
   } catch (error) {
     console.error("Error in getChatMessagesById:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// GET by Room for participants
+export const getMessagesByRoom = async (req, res) => {
+  const { id } = req.params; // chatRoomId
+
+  try {
+    // verifyRoomOwnership middleware has already ensured access
+    const result = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.chatRoomId, id))
+      .orderBy(asc(chatMessages.createdAt));
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getMessagesByRoom:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

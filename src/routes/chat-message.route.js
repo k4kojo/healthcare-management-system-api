@@ -4,6 +4,7 @@ import {
   deleteChatMessages,
   getAllChatMessages,
   getChatMessagesById,
+  getMessagesByRoom,
   updateChatMessages,
 } from "../controllers/chatMessages.controller.js";
 import {
@@ -12,6 +13,7 @@ import {
 } from "../middlewares/auth.middleware.js";
 import { validateChatMessageFKs } from "../middlewares/chat/fkValidation.middleware.js";
 import { verifyMessageOwnership } from "../middlewares/chat/ownership.middleware.js";
+import { verifyRoomOwnership } from "../middlewares/chat/roomOwnership.middleware.js";
 import { validateRequest } from "../middlewares/validate.middleware.js";
 import {
   chatMessageSchema,
@@ -30,6 +32,9 @@ chatMessagesRouter.get(
 );
 
 chatMessagesRouter.get("/:id", verifyMessageOwnership, getChatMessagesById);
+
+// Messages by chat room for participants
+chatMessagesRouter.get("/room/:id", verifyRoomOwnership, getMessagesByRoom);
 
 chatMessagesRouter.post(
   "/",
