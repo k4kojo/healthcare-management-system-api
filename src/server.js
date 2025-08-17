@@ -8,7 +8,7 @@ import arcjetMiddleware from "./middlewares/arcjet.middleware.js";
 import appointmentRouter from "./routes/appointment.route.js";
 import chatMessagesRouter from "./routes/chat-message.route.js";
 import chatRoomsRouter from "./routes/chat-rooms.route.js";
-import doctorAvailabilityRouter from "./routes/doctor-availabilty.route.js";
+import doctorAvailabilityRouter from "./routes/doctor-availability.route.js";
 import doctorProfileRouter from "./routes/doctor-profile.route.js";
 import labResultsRouter from "./routes/lab-results.route.js";
 import medicalRecordsRouter from "./routes/medical-records.route.js";
