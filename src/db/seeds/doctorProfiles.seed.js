@@ -33,8 +33,6 @@ export async function seedDoctorProfiles(users) {
     experienceYears: faker.number.int({ min: 1, max: 30 }).toString(),
   }));
 
-  // Create 9 additional generic doctor profiles (not tied to specific user accounts)
-  // These help populate listings for demo purposes
   const extraProfiles = Array.from({ length: 9 }).map(() => ({
     // doctorId intentionally omitted to avoid FK issues if no matching user exists
     specialization: faker.helpers.arrayElement(specializations),

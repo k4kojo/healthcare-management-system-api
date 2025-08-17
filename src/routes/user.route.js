@@ -14,6 +14,7 @@ import {
   updateUserById,
   verifyEmail,
   verifyResetToken,
+  getFirebaseCustomToken,
 } from "../controllers/auth.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import { checkUserOwnership } from "../middlewares/user/ownershipCheck.middleware.js";
@@ -36,6 +37,13 @@ userRouter.post("/oauth/apple", appleSignIn);
 
 // Protected routes
 userRouter.get("/", authenticateToken, restrictToRoles("admin"), getAllUsers);
+
+// Issue Firebase custom token for authenticated user
+userRouter.get(
+  "/firebase-token",
+  authenticateToken,
+  getFirebaseCustomToken
+);
 
 userRouter.get("/:id", authenticateToken, checkUserOwnership, getUserById);
 

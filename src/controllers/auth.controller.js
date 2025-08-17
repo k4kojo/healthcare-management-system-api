@@ -10,6 +10,7 @@ import { APPLE_CLIENT_ID, GOOGLE_CLIENT_IDS, JWT_EXPIRES_IN, JWT_SECRET, NODE_EN
 import { users } from "../db/schema.js";
 import notificationService from "../services/notifications/index.js";
 import { NotificationType } from "../services/notifications/types.js";
+import admin from "../config/firebaseAdmin.js";
 
 /**
  * Generates a random 6-digit token between 100000 and 999999.
@@ -781,5 +782,24 @@ export const appleSignIn = async (req, res) => {
     res.json({ token, user: { ...user, password: undefined } });
   } catch (error) {
     res.status(500).json({ error: "Apple sign-in failed" });
+  }
+};
+
+/**
+ * Issues a Firebase custom auth token for the currently authenticated backend user.
+ * Requires JWT auth middleware to have populated req.user.
+ */
+export const getFirebaseCustomToken = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const additionalClaims = { role: user.role || "patient" };
+    const customToken = await admin.auth().createCustomToken(user.userId, additionalClaims);
+    return res.json({ customToken });
+  } catch (error) {
+    console.error("Error creating Firebase custom token:", error);
+    return res.status(500).json({ error: "Failed to create Firebase custom token" });
   }
 };

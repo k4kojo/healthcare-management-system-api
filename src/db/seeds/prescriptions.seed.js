@@ -15,33 +15,30 @@ export async function seedPrescriptions(users, appointments) {
     );
   }
 
-  const prescriptionData = [
-    {
-      appointmentId: appointments[0].appointmentId,
-      doctorId: doctors[0].userId,
-      medication: "Lisinopril 10mg",
-      dosage: "10mg",
-      frequency: "Once daily",
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      instructions: "Take in the morning with food",
-    },
-    {
-      appointmentId: appointments[1].appointmentId,
-      doctorId: doctors[0].userId,
-      medication: "Ibuprofen 400mg",
-      dosage: "400mg",
-      frequency: "Every 6 hours as needed",
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      instructions: "Take with food to avoid stomach upset",
-    },
+  const meds = [
+    { name: "Lisinopril", dose: "10mg", freq: "Once daily" },
+    { name: "Ibuprofen", dose: "400mg", freq: "Every 6 hours as needed" },
+    { name: "Amoxicillin", dose: "500mg", freq: "3 times daily" },
+    { name: "Metformin", dose: "500mg", freq: "Twice daily" },
   ];
 
-  const insertedPrescriptions = await db
-    .insert(prescriptions)
-    .values(prescriptionData)
-    .returning();
+  const prescriptionData = appointments.slice(0, Math.min(appointments.length, 50)).map((a) => {
+    const m = meds[Math.floor(Math.random() * meds.length)];
+    const start = new Date();
+    const end = new Date(Date.now() + Math.floor(Math.random() * 30 + 7) * 24 * 60 * 60 * 1000);
+    return {
+      appointmentId: a.appointmentId,
+      doctorId: a.doctorId,
+      medication: `${m.name} ${m.dose}`,
+      dosage: m.dose,
+      frequency: m.freq,
+      startDate: start,
+      endDate: end,
+      instructions: "Auto-generated prescription",
+    };
+  });
+
+  const insertedPrescriptions = await db.insert(prescriptions).values(prescriptionData).returning();
 
   console.log(`💊 Seeded ${insertedPrescriptions.length} prescriptions`);
   return insertedPrescriptions;

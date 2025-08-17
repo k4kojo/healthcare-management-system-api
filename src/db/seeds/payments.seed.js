@@ -28,8 +28,8 @@ export async function seedPayments(users, appointments) {
   const paymentData = appointments.map((appointment) => {
     const isPaid = faker.datatype.boolean(0.7); // 70% chance of being paid
 
-    // Ensure createdAt is before appointmentDate
-    const createdAt = new Date(appointment.createdAt);
+    // Ensure createdAt is before appointmentDate; fallback to a week before if missing
+    const createdAt = appointment.createdAt ? new Date(appointment.createdAt) : new Date(new Date(appointment.appointmentDate).getTime() - 7 * 24 * 60 * 60 * 1000);
     const appointmentDate = new Date(appointment.appointmentDate);
 
     // Fix date range issue

@@ -10,53 +10,53 @@ export async function seedAppointments(users) {
     throw new Error("Need at least one doctor and patient for appointments");
   }
 
-  const appointmentData = [
-    {
-      appointmentId: faker.string.uuid(),
-      patientId: patients[0].userId,
-      doctorId: doctors[0].userId,
-      appointmentDate: faker.date.future(),
-      appointmentMode: "Online",
-      reasonForVisit: "Annual checkup",
-      appointmentAmount: 150.0,
-      paidAmount: 150.0,
-      paymentMethod: "MTN MoMo",
-      paymentStatus: "completed",
-      status: "confirmed",
-    },
-    {
-      appointmentId: faker.string.uuid(),
-      patientId: patients[1].userId,
-      doctorId: doctors[0].userId,
-      appointmentDate: faker.date.future(),
-      appointmentMode: "In-person",
-      reasonForVisit: "Back pain consultation",
-      appointmentAmount: 200.0,
-      paidAmount: 100.0,
-      paymentMethod: "AirtelTigo Cash",
-      paymentStatus: "partial",
-      status: "confirmed",
-    },
-    {
-      appointmentId: faker.string.uuid(),
-      patientId: patients[0].userId,
-      doctorId: doctors[0].userId,
-      appointmentDate: faker.date.past(),
-      appointmentMode: "Online",
-      reasonForVisit: "Follow-up visit",
-      appointmentAmount: 120.0,
-      paidAmount: 120.0,
-      paymentMethod: "Credit Card",
-      paymentStatus: "completed",
-      status: "completed",
-    },
-  ];
+  const appointmentData = [];
+
+  // For each patient, create 2-4 appointments with random doctors
+  for (const patient of patients) {
+    const count = faker.number.int({ min: 2, max: 4 });
+    for (let i = 0; i < count; i++) {
+      const doctor = faker.helpers.arrayElement(doctors);
+      const isFuture = faker.datatype.boolean();
+      const date = isFuture
+        ? faker.date.soon({ days: 45 })
+        : faker.date.recent({ days: 60 });
+      const mode = faker.helpers.arrayElement(["Online", "In-person"]);
+      const amount = faker.number.int({ min: 80, max: 300 });
+      const paid = faker.number.int({ min: 0, max: amount });
+      const status = isFuture
+        ? faker.helpers.arrayElement(["pending", "confirmed"])
+        : faker.helpers.arrayElement(["completed", "cancelled", "rescheduled"]);
+      const paymentStatus = paid === 0 ? "pending" : paid < amount ? "partial" : "completed";
+      const paymentMethod = paid === 0 ? null : faker.helpers.arrayElement(["MTN MoMo", "Telecel Cash", "AirtelTigo Cash", "Credit Card"]);
+
+      appointmentData.push({
+        appointmentId: faker.string.uuid(),
+        patientId: patient.userId,
+        doctorId: doctor.userId,
+        appointmentDate: date,
+        appointmentMode: mode,
+        reasonForVisit: faker.helpers.arrayElement([
+          "Annual checkup",
+          "Back pain consultation",
+          "Headache",
+          "Follow-up visit",
+          "Blood pressure review",
+        ]),
+        appointmentAmount: amount,
+        paidAmount: paid,
+        paymentMethod,
+        paymentStatus,
+        status,
+      });
+    }
+  }
 
   const insertedAppointments = await db
     .insert(appointments)
     .values(appointmentData)
     .returning();
 
-  console.log(`📅 Seeded ${insertedAppointments.length} appointments`);
+  console.log(`📅 Seeded ${insertedAppointments.length} appointments for ${patients.length} patients with ${doctors.length} doctors`);
   return insertedAppointments;
 }

@@ -25,3 +25,11 @@ export const {
 
 // Optional OAuth provider configuration
 export const { GOOGLE_CLIENT_IDS, APPLE_CLIENT_ID } = process.env;
+
+// Firebase Admin credentials for minting custom auth tokens
+export const {
+  FIREBASE_ADMIN_CREDENTIALS,
+  FIREBASE_ADMIN_PROJECT_ID,
+  FIREBASE_ADMIN_CLIENT_EMAIL,
+  FIREBASE_ADMIN_PRIVATE_KEY,
+} = process.env;

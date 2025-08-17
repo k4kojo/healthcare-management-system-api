@@ -5,9 +5,7 @@ import { reviews } from "../schema.js";
 export async function seedReviews(users, appointments) {
   const doctors = users.filter((u) => u.role === "doctor");
   const patients = users.filter((u) => u.role === "patient");
-  const completedAppointments = appointments.filter(
-    (a) => a.status === "completed"
-  );
+  const completedAppointments = appointments.filter((a) => a.status === "completed");
 
   if (
     doctors.length === 0 ||
@@ -19,7 +17,7 @@ export async function seedReviews(users, appointments) {
     );
   }
 
-  const reviewData = completedAppointments.map((appointment) => {
+  const reviewData = completedAppointments.slice(0, 50).map((appointment) => {
     const reviewDate = faker.date.between({
       from: appointment.appointmentDate,
       to: new Date(
@@ -33,7 +31,7 @@ export async function seedReviews(users, appointments) {
       appointmentId: faker.datatype.boolean(0.8)
         ? appointment.appointmentId
         : null, // 80% link to appointment
-      rating: faker.number.float({ min: 1, max: 5, precision: 0.1 }),
+      rating: faker.number.float({ min: 3, max: 5, precision: 0.1 }),
       comment: faker.datatype.boolean(0.7) ? faker.lorem.paragraph() : null, // 70% have comments
       createdAt: reviewDate,
       updatedAt: reviewDate,
