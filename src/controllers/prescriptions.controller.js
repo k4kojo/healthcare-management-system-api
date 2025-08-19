@@ -1,6 +1,20 @@
 import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
+import { appointments } from "../db/schema/appointments.js";
 import { prescriptions } from "../db/schema/prescriptions.js";
+
+export const getAllPrescriptions = async (req, res) => {
+  try {
+    const result = await db
+      .select()
+      .from(prescriptions);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getAllPrescriptions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 export const getPrescriptionById = async (req, res) => {
   try {

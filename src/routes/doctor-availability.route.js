@@ -33,7 +33,7 @@ doctorAvailabilityRouter.get(
 
 doctorAvailabilityRouter.post(
   "/",
-  authorizeRoles(["doctor", "admin"]),
+  authorizeRoles("doctor", "admin"),
   validateRequest(doctorAvailabilitySchema),
   validateDoctorExists,
   createDoctorAvailability
@@ -42,7 +42,7 @@ doctorAvailabilityRouter.post(
 doctorAvailabilityRouter.put(
   "/:id",
   verifyAvailabilityOwnership,
-  authorizeRoles(["doctor", "admin"]),
+  authorizeRoles("doctor", "admin"),
   validateRequest(doctorAvailabilityUpdateSchema),
   updateDoctorAvailability
 );
@@ -50,7 +50,7 @@ doctorAvailabilityRouter.put(
 doctorAvailabilityRouter.delete(
   "/:id",
   verifyAvailabilityOwnership,
-  authorizeRoles(["doctor", "admin"]),
+  authorizeRoles("doctor", "admin"),
   deleteDoctorAvailability
 );
 

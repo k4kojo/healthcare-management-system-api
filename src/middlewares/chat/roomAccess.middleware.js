@@ -1,4 +1,4 @@
-export const validateRoomAccess = (allowedRoles = []) => {
+export const validateRoomAccess = (...allowedRoles) => {
   return (req, res, next) => {
     const { role } = req.user;
 

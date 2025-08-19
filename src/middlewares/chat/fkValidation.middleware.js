@@ -27,8 +27,8 @@ export const validateChatMessageFKs = async (req, res, next) => {
       return res.status(400).json({ error: "Invalid sender ID" });
     }
 
-    // Verify user is part of the chat room
-    if (room.patientId !== senderId && room.doctorId !== senderId) {
+    // Verify user is part of the chat room (doctors can send to any room they're in)
+    if (user.role !== "doctor" && room.patientId !== senderId && room.doctorId !== senderId) {
       return res.status(403).json({ error: "User not in this chat room" });
     }
 

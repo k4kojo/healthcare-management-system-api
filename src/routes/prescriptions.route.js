@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createPrescription,
   deletePrescription,
+  getAllPrescriptions,
   getDoctorPrescriptions,
   getPatientPrescriptions,
   getPrescriptionById,
@@ -24,6 +25,14 @@ import { validateBody } from "../middlewares/validate.middleware.js";
 import { prescriptionSchema } from "../validators/prescriptionsSchema.js";
 
 const prescriptionsRouter = Router();
+
+// Admin routes
+prescriptionsRouter.get(
+  "/",
+  authenticateToken,
+  authorizeRoles("admin"),
+  getAllPrescriptions
+);
 
 // Patient routes
 prescriptionsRouter.get(

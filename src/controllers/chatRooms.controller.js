@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { chatRooms } from "../db/schema/chatRooms.js";
 

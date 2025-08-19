@@ -27,7 +27,7 @@ chatMessagesRouter.use(authenticateToken);
 
 chatMessagesRouter.get(
   "/",
-  authorizeRoles(["admin", "doctor"]),
+  authorizeRoles("admin", "doctor"),
   getAllChatMessages
 );
 
@@ -52,7 +52,7 @@ chatMessagesRouter.put(
 
 chatMessagesRouter.delete(
   "/:id",
-  authorizeRoles(["admin"]),
+  authorizeRoles("admin"),
   verifyMessageOwnership,
   deleteChatMessages
 );

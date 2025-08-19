@@ -7,10 +7,10 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/db.js";
 import { APPLE_CLIENT_ID, GOOGLE_CLIENT_IDS, JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from "../config/env.js";
+import admin from "../config/firebaseAdmin.js";
 import { users } from "../db/schema.js";
 import notificationService from "../services/notifications/index.js";
 import { NotificationType } from "../services/notifications/types.js";
-import admin from "../config/firebaseAdmin.js";
 
 /**
  * Generates a random 6-digit token between 100000 and 999999.

@@ -25,7 +25,7 @@ labResultsRouter.use(authenticateToken);
 
 labResultsRouter.get(
   "/",
-  authorizeRoles(["admin", "doctor", "patient"]),
+  authorizeRoles("admin", "doctor", "patient"),
   getAllLabResults
 );
 
@@ -33,7 +33,7 @@ labResultsRouter.get("/:id", verifyResultOwnership, getLabResultsById);
 
 labResultsRouter.post(
   "/",
-  authorizeRoles(["doctor", "admin"]),
+  authorizeRoles("doctor", "admin"),
   validateRequest(labResultsSchema),
   validateLabResultRelations,
   createLabResults
@@ -42,14 +42,14 @@ labResultsRouter.post(
 labResultsRouter.put(
   "/:id",
   verifyResultOwnership,
-  authorizeRoles(["doctor", "admin"]),
+  authorizeRoles("doctor", "admin"),
   validateRequest(labResultsUpdateSchema),
   updateLabResults
 );
 
 labResultsRouter.delete(
   "/:id",
-  authorizeRoles(["admin"]),
+  authorizeRoles("admin"),
   verifyResultOwnership,
   deleteLabResults
 );

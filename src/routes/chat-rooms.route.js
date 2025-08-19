@@ -23,7 +23,7 @@ chatRoomsRouter.use(authenticateToken);
 
 chatRoomsRouter.get(
   "/",
-  validateRoomAccess(["admin", "doctor", "patient"]),
+  validateRoomAccess("doctor", "patient"),
   getAllChatRooms
 );
 
@@ -31,7 +31,7 @@ chatRoomsRouter.get("/:id", verifyRoomOwnership, getChatRoomsById);
 
 chatRoomsRouter.post(
   "/",
-  validateRoomAccess(["admin", "doctor"]),
+  validateRoomAccess("admin", "doctor"),
   validateRequest(chatRoomSchema),
   validateRoomParticipants,
   createChatRooms
@@ -40,14 +40,14 @@ chatRoomsRouter.post(
 chatRoomsRouter.put(
   "/:id",
   verifyRoomOwnership,
-  validateRoomAccess(["admin", "doctor"]),
+  validateRoomAccess("admin", "doctor"),
   validateRequest(chatRoomUpdateSchema),
   updateChatRooms
 );
 
 chatRoomsRouter.delete(
   "/:id",
-  validateRoomAccess(["admin"]),
+  validateRoomAccess("admin"),
   verifyRoomOwnership,
   deleteChatRooms
 );

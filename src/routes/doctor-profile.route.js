@@ -43,7 +43,7 @@ doctorProfileRouter.put(
 
 doctorProfileRouter.delete(
   "/:id",
-  authorizeRoles(["admin"]),
+  authorizeRoles("admin"),
   verifyProfileOwnership,
   deleteDoctorProfile
 );
