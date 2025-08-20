@@ -50,17 +50,29 @@ export const checkPatientAccess = async (req, res, next) => {
 
     // Additional check if doctor is trying to access records
     if (role === "doctor") {
-      const hasPatient = await db
+      // First check if doctor has medical records for this patient
+      const hasMedicalRecords = await db
         .select()
         .from(medicalRecords)
         .where(eq(medicalRecords.patientId, patientId))
         .where(eq(medicalRecords.doctorId, userId))
         .limit(1);
 
-      if (!hasPatient.length) {
-        return res
-          .status(403)
-          .json({ error: "Doctor can only access records of their patients" });
+      // If no medical records, check if doctor has appointments with this patient
+      if (!hasMedicalRecords.length) {
+        const { appointments } = await import("../../db/schema/appointments.js");
+        const hasAppointments = await db
+          .select()
+          .from(appointments)
+          .where(eq(appointments.patientId, patientId))
+          .where(eq(appointments.doctorId, userId))
+          .limit(1);
+
+        if (!hasAppointments.length) {
+          return res
+            .status(403)
+            .json({ error: "Doctor can only access records of their patients" });
+        }
       }
     }
 

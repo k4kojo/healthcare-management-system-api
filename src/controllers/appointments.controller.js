@@ -40,7 +40,8 @@ export const getAllAppointments = async (req, res) => {
     }
 
     console.log("📦 Fetching appointments...");
-    const result = await db
+    // We need to get patient info separately since we can't join users table twice
+    const appointmentsWithDoctor = await db
       .select({
         // appointment fields
         appointmentId: appointments.appointmentId,
@@ -68,6 +69,29 @@ export const getAllAppointments = async (req, res) => {
       .leftJoin(users, eq(users.userId, appointments.doctorId))
       .leftJoin(doctorProfile, eq(doctorProfile.doctorId, users.userId))
       .where(conditions.length ? and(...conditions) : undefined);
+
+    // Get patient information for each appointment
+    const result = await Promise.all(
+      appointmentsWithDoctor.map(async (appointment) => {
+        const [patient] = await db
+          .select({
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            phoneNumber: users.phoneNumber,
+          })
+          .from(users)
+          .where(eq(users.userId, appointment.patientId));
+
+        return {
+          ...appointment,
+          patientFirstName: patient?.firstName,
+          patientLastName: patient?.lastName,
+          patientEmail: patient?.email,
+          patientPhoneNumber: patient?.phoneNumber,
+        };
+      })
+    );
 
     console.log(`✅ Fetched ${result.length} appointments`);
     res.json(result);

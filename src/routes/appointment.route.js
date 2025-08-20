@@ -19,7 +19,7 @@ appointmentRouter.use(authenticateToken);
 
 appointmentRouter.get(
   "/",
-  validateAppointmentAccess(["admin", "doctor", "patient"]),
+  validateAppointmentAccess("admin", "doctor", "patient"),
   getAllAppointments
 );
 
@@ -27,7 +27,7 @@ appointmentRouter.get("/:id", checkAppointmentOwnership, getAppointmentById);
 
 appointmentRouter.post(
   "/",
-  validateAppointmentAccess(["patient", "admin"]), // Allow admin to create appointments
+  validateAppointmentAccess("patient", "admin"), // Allow admin to create appointments
   validateDoctorExists,
   validatePatientExists, // Only used when admin creates appointment
   createAppointment
@@ -36,14 +36,14 @@ appointmentRouter.post(
 appointmentRouter.put(
   "/:id",
   checkAppointmentOwnership,
-  validateAppointmentAccess(["admin", "doctor"]),
+  validateAppointmentAccess("admin", "doctor"),
   updateAppointment
 );
 
 appointmentRouter.delete(
   "/:id",
   checkAppointmentOwnership,
-  validateAppointmentAccess(["admin", "doctor"]),
+  validateAppointmentAccess("admin", "doctor"),
   deleteAppointment
 );
 

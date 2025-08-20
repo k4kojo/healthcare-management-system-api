@@ -803,3 +803,94 @@ export const getFirebaseCustomToken = async (req, res) => {
     return res.status(500).json({ error: "Failed to create Firebase custom token" });
   }
 };
+
+/**
+ * Creates a new user account by admin (admin only).
+ * This function allows admins to create user accounts, particularly doctors,
+ * without requiring email verification.
+ */
+export const createUserByAdmin = async (req, res) => {
+  try {
+    console.log("-> Starting createUserByAdmin request");
+    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, role } = req.body;
+    
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !phoneNumber || !role) {
+      return res.status(400).json({ 
+        error: "firstName, lastName, email, password, phoneNumber, and role are required" 
+      });
+    }
+
+    // Validate role
+    const validRoles = ['patient', 'doctor', 'admin'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ 
+        error: "Invalid role. Must be one of: patient, doctor, admin" 
+      });
+    }
+
+    console.log("Checking for existing user with email:", email);
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (existingUser.length > 0) {
+      console.log("User already exists with email:", email);
+      return res.status(409).json({ error: "Email already exists" });
+    }
+
+    console.log("Creating new user account by admin");
+    const userId = uuidv4();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    console.log("Inserting new user into database");
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        userId,
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        phoneNumber,
+        dateOfBirth,
+        role,
+        isVerified: true, // Admin-created users are automatically verified
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    console.log("<- createUserByAdmin request successful");
+    res.status(201).json({
+      message: "User created successfully by admin",
+      user: {
+        userId: newUser.userId,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phoneNumber: newUser.phoneNumber,
+        role: newUser.role,
+        isVerified: newUser.isVerified,
+        isActive: newUser.isActive,
+        createdAt: newUser.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error(`Error in createUserByAdmin: ${error.message}`, {
+      stack: error.stack,
+      code: error.code,
+      body: req.body,
+    });
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Email already exists" });
+    }
+    res.status(500).json({
+      error: "Internal server error",
+      ...(NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+};

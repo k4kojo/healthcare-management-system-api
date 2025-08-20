@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
   appleSignIn,
+  createUserByAdmin,
   deleteUserById,
   getAllUsers,
+  getFirebaseCustomToken,
   getUserById,
   googleSignIn,
   requestPasswordReset,
@@ -14,7 +16,6 @@ import {
   updateUserById,
   verifyEmail,
   verifyResetToken,
-  getFirebaseCustomToken,
 } from "../controllers/auth.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import { checkUserOwnership } from "../middlewares/user/ownershipCheck.middleware.js";
@@ -23,7 +24,7 @@ import {
   restrictToRoles,
 } from "../middlewares/user/roleCheck.middleware.js";
 import { validateBody } from "../middlewares/validate.middleware.js";
-import { signInSchema, signUpSchema } from "../validators/authSchema.js";
+import { adminUserCreationSchema, signInSchema, signUpSchema } from "../validators/authSchema.js";
 
 const userRouter = Router();
 
@@ -37,6 +38,9 @@ userRouter.post("/oauth/apple", appleSignIn);
 
 // Protected routes
 userRouter.get("/", authenticateToken, restrictToRoles("admin"), getAllUsers);
+
+// Admin-only user creation
+userRouter.post("/create", authenticateToken, restrictToRoles("admin"), validateBody(adminUserCreationSchema), createUserByAdmin);
 
 // Issue Firebase custom token for authenticated user
 userRouter.get(

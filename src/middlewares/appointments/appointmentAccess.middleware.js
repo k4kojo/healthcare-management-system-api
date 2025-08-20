@@ -1,4 +1,4 @@
-export const validateAppointmentAccess = (allowedRoles = []) => {
+export const validateAppointmentAccess = (...allowedRoles) => {
   return (req, res, next) => {
     const { role } = req.user;
 
