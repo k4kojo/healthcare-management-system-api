@@ -21,7 +21,8 @@ export const users = pgTable("users", {
   phoneNumber: varchar("phone_number").notNull(),
   dateOfBirth: date("date_of_birth"),
 
-  profilePicture: varchar("profile_picture").default(null),
+  profilePicture: text("profile_picture").default(null), // Store as base64 encoded string
+  profilePictureType: varchar("profile_picture_type", { length: 50 }).default(null), // MIME type
 
   role: text("role", { length: 20 }).notNull().default("patient"), // e.g., 'patient', 'doctor', 'admin'
   isActive: boolean("is_active").notNull().default(true),

@@ -1,17 +1,17 @@
 import { Router } from "express";
 import {
-  cancelConsultation,
-  createConsultation,
-  deleteConsultation,
-  endConsultation,
-  getAllConsultations,
-  getConsultationById,
-  startConsultation,
-  updateConsultation,
+    cancelConsultation,
+    createConsultation,
+    deleteConsultation,
+    endConsultation,
+    getAllConsultations,
+    getConsultationById,
+    startConsultation,
+    updateConsultation,
 } from "../controllers/consultations.controller.js";
 import {
-  authenticateToken,
-  authorizeRoles,
+    authenticateToken,
+    authorizeRoles,
 } from "../middlewares/auth.middleware.js";
 
 const consultationsRouter = Router();

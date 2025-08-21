@@ -1,10 +1,12 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   appleSignIn,
   createUserByAdmin,
   deleteUserById,
   getAllUsers,
   getFirebaseCustomToken,
+  getProfilePicture,
   getUserById,
   googleSignIn,
   requestPasswordReset,
@@ -14,6 +16,7 @@ import {
   signIn,
   signUp,
   updateUserById,
+  uploadProfilePicture,
   verifyEmail,
   verifyResetToken,
 } from "../controllers/auth.controller.js";
@@ -25,6 +28,22 @@ import {
 } from "../middlewares/user/roleCheck.middleware.js";
 import { validateBody } from "../middlewares/validate.middleware.js";
 import { adminUserCreationSchema, signInSchema, signUpSchema } from "../validators/authSchema.js";
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Check if file is an image
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+});
 
 const userRouter = Router();
 
@@ -70,5 +89,18 @@ userRouter.post("/request-password-reset", requestPasswordReset);
 userRouter.post("/reset-password", resetPassword);
 userRouter.post("/resend-request-password-reset", resendResetToken);
 userRouter.get("/verify-reset-token", verifyResetToken);
+
+// Profile picture routes
+userRouter.post(
+  "/profile-picture/upload",
+  authenticateToken,
+  upload.single('profilePicture'),
+  uploadProfilePicture
+);
+
+userRouter.get(
+  "/profile-picture/:userId",
+  getProfilePicture
+);
 
 export default userRouter;

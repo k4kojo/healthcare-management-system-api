@@ -894,3 +894,113 @@ export const createUserByAdmin = async (req, res) => {
     });
   }
 };
+
+/**
+ * Upload profile picture and store in database.
+ * This function handles image uploads and stores them as base64 encoded strings in the database.
+ */
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    console.log("-> Starting uploadProfilePicture request");
+    
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const { userId } = req.user; // From auth middleware
+    const { buffer, mimetype, originalname } = req.file;
+
+    // Validate file size (max 5MB)
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: "File size must be less than 5MB" });
+    }
+
+    // Validate file type
+    if (!mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: "Only image files are allowed" });
+    }
+
+    // Convert buffer to base64 string
+    const base64String = buffer.toString('base64');
+
+    console.log("Updating user profile picture in database");
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        profilePicture: base64String,
+        profilePictureType: mimetype,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.userId, userId))
+      .returning();
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log("<- uploadProfilePicture request successful");
+    res.json({
+      message: "Profile picture uploaded successfully",
+      user: {
+        userId: updatedUser.userId,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        profilePictureType: updatedUser.profilePictureType,
+        updatedAt: updatedUser.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error(`Error in uploadProfilePicture: ${error.message}`, {
+      stack: error.stack,
+      code: error.code,
+    });
+    res.status(500).json({
+      error: "Internal server error",
+      ...(NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+};
+
+/**
+ * Get profile picture from database.
+ * This function retrieves and serves the profile picture image data.
+ */
+export const getProfilePicture = async (req, res) => {
+  try {
+    console.log("-> Starting getProfilePicture request");
+    
+    const { userId } = req.params;
+
+    const [user] = await db
+      .select({
+        profilePicture: users.profilePicture,
+        profilePictureType: users.profilePictureType,
+      })
+      .from(users)
+      .where(eq(users.userId, userId));
+
+    if (!user || !user.profilePicture) {
+      return res.status(404).json({ error: "Profile picture not found" });
+    }
+
+    console.log("<- getProfilePicture request successful");
+    
+    // Convert base64 string back to buffer
+    const imageBuffer = Buffer.from(user.profilePicture, 'base64');
+    
+    // Set appropriate headers for image serving
+    res.setHeader('Content-Type', user.profilePictureType || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error(`Error in getProfilePicture: ${error.message}`, {
+      stack: error.stack,
+      code: error.code,
+    });
+    res.status(500).json({
+      error: "Internal server error",
+      ...(NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+};
