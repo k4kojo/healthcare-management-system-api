@@ -611,7 +611,8 @@ export const updateUserById = async (req, res) => {
     if (email) updateData.email = email;
     if (phoneNumber) updateData.phoneNumber = phoneNumber;
     if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
-    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    // Don't allow profilePicture updates through this endpoint - use dedicated upload endpoint
+    // if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No valid fields to update" });
