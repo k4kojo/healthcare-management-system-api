@@ -74,4 +74,26 @@ paymentsRouter.get(
   getPaymentById
 );
 
+// Payment verification routes
+paymentsRouter.put(
+  "/:reference/verify",
+  authenticateToken,
+  authorizeRoles("admin", "patient"),
+  updatePayment
+);
+
+paymentsRouter.post(
+  "/:reference/retry",
+  authenticateToken,
+  authorizeRoles("admin", "patient"),
+  updatePayment
+);
+
+paymentsRouter.post(
+  "/:reference/cancel",
+  authenticateToken,
+  authorizeRoles("admin", "patient"),
+  updatePayment
+);
+
 export default paymentsRouter;
