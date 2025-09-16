@@ -21,6 +21,7 @@ import userActivityLogsRouter from "./routes/user-activity-log.route.js";
 import userSettingsRouter from "./routes/user-settings.route.js";
 import userRouter from "./routes/user.route.js";
 import userFeedbacksRouter from "./routes/userFeedbacks.route.js";
+import ussdRouter from "./routes/ussd.route.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ if (NODE_ENV === "production") job.start();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For USSD form data
 // app.use(arcjetMiddleware);
 
 app.get("/", (req, res) => {
@@ -52,6 +54,7 @@ app.use(`${API_PREFIX}/user-activity-logs`, userActivityLogsRouter);
 app.use(`${API_PREFIX}/feedbacks`, userFeedbacksRouter);
 app.use(`${API_PREFIX}/user-settings`, userSettingsRouter);
 app.use(`${API_PREFIX}/patient-profile`, patientProfileRouter);
+app.use(`${API_PREFIX}/ussd`, ussdRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
