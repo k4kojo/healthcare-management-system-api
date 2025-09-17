@@ -5,7 +5,7 @@ const dosageRegex = /^[\d\.]+\s*[a-zA-Z]+$/;
 
 export const prescriptionSchema = z
   .object({
-    appointmentId: z.string().uuid(),
+    appointmentId: z.string().uuid().optional(), // Made optional for direct prescriptions
     medication: z
       .string()
       .min(1)

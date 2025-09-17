@@ -9,6 +9,7 @@ import { db } from "../config/db.js";
 import { APPLE_CLIENT_ID, GOOGLE_CLIENT_IDS, JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from "../config/env.js";
 import admin from "../config/firebaseAdmin.js";
 import { users } from "../db/schema.js";
+import { doctorProfile } from "../db/schema/doctorProfile.js";
 import notificationService from "../services/notifications/index.js";
 import { NotificationType } from "../services/notifications/types.js";
 
@@ -543,17 +544,76 @@ export const resendResetToken = async (req, res) => {
  * Retrieves all users from the database (admin only).
  *
  * This function is for administrative access and returns all user
- * data, with the sensitive password field removed.
+ * data, with the sensitive password field removed. For doctors,
+ * it also includes their profile information.
  */
 export const getAllUsers = async (req, res) => {
   try {
     console.log("-> Starting getAllUsers request (Admin access)");
-    const allUsers = await db.select().from(users);
+    
+    // Get all users with doctor profile data joined
+    const allUsersWithProfiles = await db
+      .select({
+        // User fields
+        id: users.id,
+        userId: users.userId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        dateOfBirth: users.dateOfBirth,
+        profilePicture: users.profilePicture,
+        profilePictureType: users.profilePictureType,
+        role: users.role,
+        isActive: users.isActive,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        // Doctor profile fields (will be null for non-doctors)
+        specialization: doctorProfile.specialization,
+        licenseNumber: doctorProfile.licenseNumber,
+        experienceYears: doctorProfile.experienceYears,
+        education: doctorProfile.bio, // Map bio to education for frontend compatibility
+        reviews: doctorProfile.reviews,
+        rating: doctorProfile.rating
+      })
+      .from(users)
+      .leftJoin(doctorProfile, eq(doctorProfile.doctorId, users.userId));
 
-    const usersWithoutPasswords = allUsers.map((u) => ({
-      ...u,
-      password: undefined,
-    }));
+    // Map the results to include doctor-specific fields only for doctors
+    const usersWithoutPasswords = allUsersWithProfiles.map((user) => {
+      const baseUser = {
+        id: user.id,
+        userId: user.userId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        dateOfBirth: user.dateOfBirth,
+        profilePicture: user.profilePicture,
+        profilePictureType: user.profilePictureType,
+        role: user.role,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+
+      // Add doctor-specific fields if user is a doctor and has profile data
+      if (user.role === 'doctor' && user.specialization) {
+        return {
+          ...baseUser,
+          specialization: user.specialization,
+          licenseNumber: user.licenseNumber,
+          yearsOfExperience: user.experienceYears, // Map to frontend expected field name
+          education: user.education,
+          reviews: user.reviews,
+          rating: user.rating
+        };
+      }
+
+      return baseUser;
+    });
 
     console.log("<- getAllUsers request successful");
     res.json(usersWithoutPasswords);
@@ -604,8 +664,34 @@ export const updateUserById = async (req, res) => {
   try {
     console.log("-> Starting updateUserById request");
     const { id } = req.params;
-    const { firstName, lastName, email, phoneNumber, dateOfBirth, profilePicture } = req.body;
+    const { firstName, lastName, email, phoneNumber, dateOfBirth, profilePicture, currentPassword, newPassword } = req.body;
     const updateData = {};
+    
+    // Handle password change if both currentPassword and newPassword are provided
+    if (currentPassword && newPassword) {
+      console.log("Processing password change request");
+      
+      // Get user to verify current password
+      const [user] = await db.select().from(users).where(eq(users.userId, id));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Verify current password
+      const currentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!currentPasswordValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+      updateData.password = hashedNewPassword;
+      
+      console.log("Password change validated and prepared");
+    }
+    
+    // Handle other profile fields
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (email) updateData.email = email;
@@ -628,8 +714,9 @@ export const updateUserById = async (req, res) => {
     }
 
     console.log("<- updateUserById request successful");
+    const responseMessage = updateData.password ? "Password updated successfully" : "User updated successfully";
     res.json({
-      message: "User updated successfully",
+      message: responseMessage,
       user: { ...result[0], password: undefined },
     });
   } catch (error) {
@@ -812,12 +899,13 @@ export const getFirebaseCustomToken = async (req, res) => {
 export const createUserByAdmin = async (req, res) => {
   try {
     console.log("-> Starting createUserByAdmin request");
-    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, role } = req.body;
+    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, role, 
+            licenseNumber, yearsOfExperience, education, specialization } = req.body;
     
     // Validate required fields
-    if (!firstName || !lastName || !email || !password || !phoneNumber || !role) {
+    if (!firstName || !lastName || !email || !phoneNumber || !role) {
       return res.status(400).json({ 
-        error: "firstName, lastName, email, password, phoneNumber, and role are required" 
+        error: "firstName, lastName, email, phoneNumber, and role are required" 
       });
     }
 
@@ -827,6 +915,15 @@ export const createUserByAdmin = async (req, res) => {
       return res.status(400).json({ 
         error: "Invalid role. Must be one of: patient, doctor, admin" 
       });
+    }
+
+    // Validate doctor-specific fields
+    if (role === 'doctor') {
+      if (!licenseNumber || !specialization) {
+        return res.status(400).json({ 
+          error: "For doctors: licenseNumber and specialization are required" 
+        });
+      }
     }
 
     console.log("Checking for existing user with email:", email);
@@ -843,7 +940,9 @@ export const createUserByAdmin = async (req, res) => {
     console.log("Creating new user account by admin");
     const userId = uuidv4();
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Use secure default password for doctors, generate random for others
+    const userPassword = password || (role === 'doctor' ? 'Test@123' : `TempPass${Math.random().toString(36).slice(-8)}!`);
+    const hashedPassword = await bcrypt.hash(userPassword, salt);
 
     console.log("Inserting new user into database");
     const [newUser] = await db
@@ -864,8 +963,43 @@ export const createUserByAdmin = async (req, res) => {
       })
       .returning();
 
+    // If user is a doctor, create doctor profile
+    let doctorProfileData = null;
+    if (role === 'doctor') {
+      console.log("Creating doctor profile for user:", userId);
+      try {
+        const [newDoctorProfile] = await db
+          .insert(doctorProfile)
+          .values({
+            doctorId: userId,
+            specialization,
+            licenseNumber,
+            experienceYears: yearsOfExperience ? String(yearsOfExperience) : null,
+            bio: education || null, // Store education in bio field since there's no separate education field
+            reviews: 0,
+            rating: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        
+        doctorProfileData = newDoctorProfile;
+        console.log("Doctor profile created successfully");
+      } catch (profileError) {
+        console.error("Error creating doctor profile:", profileError);
+        // If doctor profile creation fails, we should delete the user and return error
+        await db.delete(users).where(eq(users.userId, userId));
+        return res.status(500).json({
+          error: "Failed to create doctor profile",
+          details: profileError.message
+        });
+      }
+    }
+
     console.log("<- createUserByAdmin request successful");
-    res.status(201).json({
+    
+    // Return response with user data and doctor profile if applicable
+    const responseData = {
       message: "User created successfully by admin",
       user: {
         userId: newUser.userId,
@@ -877,8 +1011,17 @@ export const createUserByAdmin = async (req, res) => {
         isVerified: newUser.isVerified,
         isActive: newUser.isActive,
         createdAt: newUser.createdAt,
+        // Include doctor-specific fields in response if it's a doctor
+        ...(role === 'doctor' && doctorProfileData && {
+          specialization: doctorProfileData.specialization,
+          licenseNumber: doctorProfileData.licenseNumber,
+          yearsOfExperience: doctorProfileData.experienceYears,
+          education: doctorProfileData.bio
+        })
       },
-    });
+    };
+
+    res.status(201).json(responseData);
   } catch (error) {
     console.error(`Error in createUserByAdmin: ${error.message}`, {
       stack: error.stack,

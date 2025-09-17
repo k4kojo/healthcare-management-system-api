@@ -5,6 +5,7 @@ import {
   getAllNotifications,
   getNotificationsById,
   getUserNotifications,
+  markAllAsRead,
   markAsRead,
   updateNotifications,
 } from "../controllers/notifications.controller.js";
@@ -60,6 +61,13 @@ notificationsRouter.put(
   authorizeRoles("admin", "doctor", "patient"),
   checkNotificationOwnership,
   markAsRead
+);
+
+notificationsRouter.put(
+  "/user/notifications/mark-all-read",
+  authenticateToken,
+  authorizeRoles("admin", "doctor", "patient"),
+  markAllAsRead
 );
 
 notificationsRouter.put(

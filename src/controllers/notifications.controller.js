@@ -95,6 +95,28 @@ export const markAsRead = async (req, res) => {
   }
 };
 
+export const markAllAsRead = async (req, res) => {
+  try {
+    const result = await db
+      .update(notifications)
+      .set({
+        isRead: true,
+        updatedAt: new Date(),
+      })
+      .where(
+        or(
+          eq(notifications.userId, req.user.userId),
+          eq(notifications.isGlobal, true)
+        )
+      )
+      .returning();
+    res.json({ message: `Marked ${result.length} notifications as read`, updated: result.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const deleteNotifications = async (req, res) => {
   try {
     await db

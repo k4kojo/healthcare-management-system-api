@@ -16,20 +16,24 @@ export const validatePrescriptionFKs = async (req, res, next) => {
       return res.status(400).json({ error: "Doctor not found or invalid" });
     }
 
-    // Check appointment exists
-    const appointment = await db
-      .select()
-      .from(appointments)
-      .where(eq(appointments.appointmentId, appointmentId));
-    if (!appointment.length) {
-      return res.status(400).json({ error: "Appointment not found" });
-    }
+    // Only validate appointment if appointmentId is provided
+    // This allows for direct prescriptions without appointments
+    if (appointmentId) {
+      // Check appointment exists
+      const appointment = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.appointmentId, appointmentId));
+      if (!appointment.length) {
+        return res.status(400).json({ error: "Appointment not found" });
+      }
 
-    // Verify appointment belongs to this doctor
-    if (appointment[0].doctorId !== doctorId) {
-      return res
-        .status(400)
-        .json({ error: "Appointment doesn't belong to this doctor" });
+      // Verify appointment belongs to this doctor
+      if (appointment[0].doctorId !== doctorId) {
+        return res
+          .status(400)
+          .json({ error: "Appointment doesn't belong to this doctor" });
+      }
     }
 
     next();

@@ -13,13 +13,15 @@ export const prescriptions = pgTable("prescriptions", {
   id: serial("id").primaryKey(),
 
   appointmentId: uuid("appointment_id")
-    .notNull()
-    .references(() => appointments.appointmentId), // FK to appointments.id
+    .references(() => appointments.appointmentId), // FK to appointments.id - now optional for direct prescriptions
 
-  // FK to doctors.id (or users.id if you don’t separate doctor users)
+  // FK to doctors.id (or users.id if you don't separate doctor users)
   doctorId: uuid("doctor_id")
     .notNull()
     .references(() => users.userId),
+
+  // TODO: Consider adding patientId field for direct prescriptions
+  // patientId: uuid("patient_id").references(() => users.userId), // For direct prescriptions without appointments
 
   medication: varchar("medication").notNull(), // Comma-separated or structured medication field
 
