@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
-import { chatRooms, videoCalls } from "../db/schema/index.js";
-import { createTwilioRoom, endTwilioRoom } from "../services/twilioVideo.js";
+import { chatRooms, videoCalls } from "../db/schema.js";
+import { createWebRTCRoom, endWebRTCRoom, getRoomInfo } from "../services/webrtcVideo.js";
 
 export const createVideoCall = async (req, res) => {
   try {
@@ -30,8 +30,8 @@ export const createVideoCall = async (req, res) => {
         .json({ error: "This chat room already has an active call" });
     }
 
-    // Create Twilio room
-    const twilioRoom = await createTwilioRoom(chatRoomId, userId);
+    // Create WebRTC room
+    const webrtcRoom = await createWebRTCRoom(chatRoomId, userId);
 
     // Create video call record
     const [newCall] = await db
@@ -41,8 +41,7 @@ export const createVideoCall = async (req, res) => {
         appointmentId,
         patientId: chatRoom.patientId,
         doctorId: chatRoom.doctorId,
-        roomSid: twilioRoom.roomSid,
-        statusCallbackUrl: `${process.env.API_BASE_URL}/video-calls/webhook`,
+        roomSid: webrtcRoom.roomSid,
         status: "scheduled",
       })
       .returning();
@@ -58,8 +57,8 @@ export const createVideoCall = async (req, res) => {
 
     res.status(201).json({
       ...newCall,
-      accessToken: twilioRoom.accessToken,
-      roomName: twilioRoom.roomName,
+      roomId: webrtcRoom.roomId,
+      roomName: webrtcRoom.roomName,
     });
   } catch (error) {
     console.error("Error creating video call:", error);
@@ -87,22 +86,13 @@ export const joinVideoCall = async (req, res) => {
         .json({ error: "Not authorized to join this call" });
     }
 
-    // Generate Twilio token for the user
-    const token = new Twilio.jwt.AccessToken(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_API_KEY_SID,
-      process.env.TWILIO_API_KEY_SECRET,
-      { identity: userId }
-    );
-
-    const videoGrant = new Twilio.jwt.AccessToken.VideoGrant({
-      room: call.roomSid,
-    });
-    token.addGrant(videoGrant);
+    // Get room information
+    const roomInfo = await getRoomInfo(call.roomSid);
 
     res.status(200).json({
-      accessToken: token.toJwt(),
-      roomSid: call.roomSid,
+      roomId: call.roomSid,
+      roomInfo: roomInfo,
+      userId: userId,
     });
   } catch (error) {
     console.error("Error joining video call:", error);
@@ -128,23 +118,70 @@ export const endVideoCall = async (req, res) => {
       return res.status(403).json({ error: "Not authorized to end this call" });
     }
 
-    // End Twilio room
-    await endTwilioRoom(call.roomSid);
+    // End WebRTC room
+    await endWebRTCRoom(call.roomSid);
 
-    // Note: The actual status update will happen via webhook when Twilio confirms
-    res.status(200).json({ message: "Call ending initiated" });
+    // Update call status in database
+    await db
+      .update(videoCalls)
+      .set({
+        status: "completed",
+        endedAt: new Date(),
+      })
+      .where(eq(videoCalls.id, callId));
+
+    // Update chat room to remove active call
+    await db
+      .update(chatRooms)
+      .set({ hasActiveCall: false, currentCallId: null })
+      .where(eq(chatRooms.chatRoomId, call.chatRoomId));
+
+    res.status(200).json({ message: "Call ended successfully" });
   } catch (error) {
     console.error("Error ending video call:", error);
     res.status(500).json({ error: "Failed to end video call" });
   }
 };
 
-// Webhook handler
-export const handleWebhook = async (req, res) => {
+// WebRTC status handler (replaces webhook)
+export const updateCallStatus = async (req, res) => {
   try {
-    await handleTwilioWebhook(req, res);
+    const { callId } = req.params;
+    const { status, duration } = req.body;
+    const userId = req.user.userId;
+
+    // Verify call exists and user is a participant
+    const call = await db.query.videoCalls.findFirst({
+      where: (calls, { eq, and, or }) =>
+        and(
+          eq(calls.id, callId),
+          or(eq(calls.patientId, userId), eq(calls.doctorId, userId))
+        ),
+    });
+
+    if (!call) {
+      return res.status(403).json({ error: "Not authorized to update this call" });
+    }
+
+    const updateData = { status };
+    
+    if (status === "in-progress" && !call.startedAt) {
+      updateData.startedAt = new Date();
+    } else if (status === "completed") {
+      updateData.endedAt = new Date();
+      if (duration) {
+        updateData.duration = duration;
+      }
+    }
+
+    await db
+      .update(videoCalls)
+      .set(updateData)
+      .where(eq(videoCalls.id, callId));
+
+    res.status(200).json({ message: "Call status updated successfully" });
   } catch (error) {
-    console.error("Error in webhook handler:", error);
-    res.status(500).send("Error processing webhook");
+    console.error("Error updating call status:", error);
+    res.status(500).json({ error: "Failed to update call status" });
   }
 };

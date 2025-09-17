@@ -1,4 +1,4 @@
-import { db } from "../config/db.js";
+import { db } from "../../config/db.js";
 
 export const verifyVideoCallAccess = async (req, res, next) => {
   const { callId } = req.params;

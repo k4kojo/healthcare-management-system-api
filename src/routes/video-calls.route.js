@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   createVideoCall,
   endVideoCall,
-  handleWebhook,
+  updateCallStatus,
   joinVideoCall,
 } from "../controllers/videoCalls.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
@@ -33,11 +33,12 @@ videoCallRouter.post(
   endVideoCall
 );
 
-// Twilio webhook endpoint (no authentication)
-videoCallRouter.post(
-  "/webhook",
-  express.urlencoded({ extended: false }),
-  handleWebhook
+// WebRTC status update endpoint
+videoCallRouter.put(
+  "/:callId/status",
+  authenticateToken,
+  verifyVideoCallAccess,
+  updateCallStatus
 );
 
 export default videoCallRouter;

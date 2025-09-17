@@ -70,6 +70,20 @@ export function authenticateToken(req, res, next) {
         next();
       } catch (error) {
         console.error("Database error during user lookup:", error);
+        
+        // Temporary fallback for development when database is unreachable
+        if (process.env.NODE_ENV === 'development' && error.message.includes('fetch failed')) {
+          console.warn('⚠️  Database unreachable, using fallback user data for development');
+          req.user = {
+            userId: decodedPayload.userId,
+            email: decodedPayload.email || 'dev@example.com',
+            role: decodedPayload.role || 'patient',
+            firstName: 'Development',
+            lastName: 'User'
+          };
+          return next();
+        }
+        
         return res
           .status(500)
           .json({ error: "Internal server error during authentication" });

@@ -1,8 +1,11 @@
 import cors from "cors";
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 import job from "./config/cron.js";
 import { NODE_ENV, PORT } from "./config/env.js";
+import { handleWebRTCSignaling } from "./services/webrtcVideo.js";
 
 import appointmentRouter from "./routes/appointment.route.js";
 import chatMessagesRouter from "./routes/chat-message.route.js";
@@ -22,15 +25,22 @@ import userSettingsRouter from "./routes/user-settings.route.js";
 import userRouter from "./routes/user.route.js";
 import userFeedbacksRouter from "./routes/userFeedbacks.route.js";
 import ussdRouter from "./routes/ussd.route.js";
+import videoCallRouter from "./routes/video-calls.route.js";
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
 if (NODE_ENV === "production") job.start();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For USSD form data
-// app.use(arcjetMiddleware);
 
 app.get("/", (req, res) => {
   res.status(200).json({ success: true });
@@ -55,7 +65,11 @@ app.use(`${API_PREFIX}/feedbacks`, userFeedbacksRouter);
 app.use(`${API_PREFIX}/user-settings`, userSettingsRouter);
 app.use(`${API_PREFIX}/patient-profile`, patientProfileRouter);
 app.use(`${API_PREFIX}/ussd`, ussdRouter);
+app.use(`${API_PREFIX}/video-calls`, videoCallRouter);
 
-app.listen(PORT, () => {
+// Initialize WebRTC signaling
+handleWebRTCSignaling(io);
+
+server.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
 });
