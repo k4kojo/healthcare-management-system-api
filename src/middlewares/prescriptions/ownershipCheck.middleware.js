@@ -22,22 +22,30 @@ export const checkPrescriptionOwnership = async (req, res, next) => {
       return next();
     }
 
-    // Get related appointment
-    const appointment = await db
-      .select()
-      .from(appointments)
-      .where(eq(appointments.appointmentId, prescription[0].appointmentId));
-
     // Doctors can access their own prescriptions
     if (role === "doctor" && prescription[0].doctorId === userId) {
       req.prescription = prescription[0];
       return next();
     }
 
-    // Patients can access their own prescriptions
-    if (role === "patient" && appointment[0]?.patientId === userId) {
-      req.prescription = prescription[0];
-      return next();
+    // For patients, check if they can access this prescription
+    if (role === "patient") {
+      // If prescription has an appointment, check if patient owns the appointment
+      if (prescription[0].appointmentId) {
+        const appointment = await db
+          .select()
+          .from(appointments)
+          .where(eq(appointments.appointmentId, prescription[0].appointmentId));
+        
+        if (appointment.length && appointment[0].patientId === userId) {
+          req.prescription = prescription[0];
+          return next();
+        }
+      }
+      
+      // TODO: For direct prescriptions without appointments, 
+      // we would need a patientId field in prescriptions table
+      // to properly authorize patient access
     }
 
     return res

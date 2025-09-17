@@ -145,21 +145,43 @@ export const createAppointment = async (req, res) => {
       .returning();
 
     console.log("✅ Appointment created with ID:", appointment.appointmentId);
-    // Create in-app notifications for patient (and optionally doctor)
+    // Create in-app notifications for patient, doctor, and admin
     try {
       const when = new Date(appointment.appointmentDate);
       const humanWhen = isNaN(when.getTime())
         ? String(appointment.appointmentDate)
         : `${when.toDateString()} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
-      await db.insert(notifications).values([
+      const notificationsToCreate = [
+        // Notification for patient
         {
           userId: appointment.patientId,
           type: "appointment",
           message: `Your appointment request has been submitted for ${humanWhen}.`,
           isGlobal: false,
-        },
-      ]);
+        }
+      ];
+
+      // Notification for doctor if specified
+      if (appointment.doctorId) {
+        notificationsToCreate.push({
+          userId: appointment.doctorId,
+          type: "appointment",
+          message: `New appointment request received for ${humanWhen}.`,
+          isGlobal: false,
+        });
+      }
+
+      // Global notification for admin
+      notificationsToCreate.push({
+        userId: null,
+        type: "appointment",
+        message: `New appointment booked for ${humanWhen}.`,
+        isGlobal: true,
+      });
+
+      await db.insert(notifications).values(notificationsToCreate);
+      console.log(`✅ Created ${notificationsToCreate.length} notifications for appointment`);
     } catch (notifyErr) {
       console.warn("⚠️ Failed to create notification for appointment:", notifyErr);
     }
