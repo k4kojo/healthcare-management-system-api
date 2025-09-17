@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { labResults } from "../db/schema/labResults.js";
+import { notifications } from "../db/schema/notifications.js";
 
 export const getAllLabResults = async (req, res) => {
   const { role, userId } = req.user;
@@ -43,6 +44,47 @@ export const createLabResults = async (req, res) => {
     };
 
     const [record] = await db.insert(labResults).values(data).returning();
+
+    // Create notifications for lab result availability
+    try {
+      const notificationsToCreate = [];
+
+      // Notification for patient
+      if (record.patientId) {
+        notificationsToCreate.push({
+          userId: record.patientId,
+          type: "lab_result",
+          message: `Your lab results are now available for review.`,
+          isGlobal: false,
+        });
+      }
+
+      // Notification for doctor
+      if (record.doctorId && record.doctorId !== userId) {
+        notificationsToCreate.push({
+          userId: record.doctorId,
+          type: "lab_result",
+          message: `New lab results are available for patient review.`,
+          isGlobal: false,
+        });
+      }
+
+      // Global notification for admin
+      notificationsToCreate.push({
+        userId: null,
+        type: "lab_result",
+        message: `New lab results have been uploaded and are available for review.`,
+        isGlobal: true,
+      });
+
+      if (notificationsToCreate.length > 0) {
+        await db.insert(notifications).values(notificationsToCreate);
+        console.log(`✅ Created ${notificationsToCreate.length} notifications for lab result`);
+      }
+    } catch (notifyErr) {
+      console.warn("⚠️ Failed to create notification for lab result:", notifyErr);
+    }
+
     res.status(201).json(record);
   } catch (error) {
     console.error("Error in createLabResults:", error);

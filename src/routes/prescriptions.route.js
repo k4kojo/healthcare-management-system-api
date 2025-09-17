@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   createPrescription,
+  createAppointmentPrescription,
+  createDirectPrescription,
   deletePrescription,
   getAllPrescriptions,
   getDoctorPrescriptions,
@@ -59,6 +61,22 @@ prescriptionsRouter.post(
   validatePrescriptionFKs,
   validatePrescriptionCreation,
   createPrescription
+);
+
+// Appointment prescription creation (with appointment requirement)
+prescriptionsRouter.post(
+  "/appointment",
+  authenticateToken,
+  authorizeRoles("doctor"),
+  createAppointmentPrescription
+);
+
+// Direct prescription creation (without appointment requirement)
+prescriptionsRouter.post(
+  "/direct",
+  authenticateToken,
+  authorizeRoles("doctor"),
+  createDirectPrescription
 );
 
 // Shared routes

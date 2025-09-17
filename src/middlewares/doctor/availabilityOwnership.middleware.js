@@ -6,6 +6,13 @@ export const verifyAvailabilityOwnership = async (req, res, next) => {
   const { id } = req.params;
   const { userId, role } = req.user;
 
+  // Validate that id is provided and is a valid number
+  if (!id || isNaN(id) || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+    return res.status(400).json({ 
+      error: "Invalid availability ID. Must be a positive integer." 
+    });
+  }
+
   try {
     const [availability] = await db
       .select()

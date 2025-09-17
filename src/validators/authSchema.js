@@ -25,7 +25,7 @@ export const adminUserCreationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Valid email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional(),
   phoneNumber: z.string().min(7, "Valid phone number is required"),
   dateOfBirth: z.coerce.date().refine(
     (date) => {
@@ -42,7 +42,24 @@ export const adminUserCreationSchema = z.object({
     required_error: "Role is required",
     invalid_type_error: "Role must be admin, doctor, or patient"
   }),
-});
+  // Doctor-specific fields
+  licenseNumber: z.string().min(1, "License number is required").optional(),
+  yearsOfExperience: z.union([z.string(), z.number()]).optional(),
+  education: z.string().optional(),
+  specialization: z.string().min(1, "Specialization is required").optional(),
+}).refine(
+  (data) => {
+    // If role is doctor, require doctor-specific fields
+    if (data.role === "doctor") {
+      return data.licenseNumber && data.specialization;
+    }
+    return true;
+  },
+  {
+    message: "For doctors: licenseNumber and specialization are required",
+    path: ["licenseNumber"],
+  }
+);
 
 export const signInSchema = z.object({
   email: z.string().email(),

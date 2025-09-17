@@ -10,6 +10,7 @@ export * from "./schema/notifications.js";
 export * from "./schema/patientProfile.js";
 export * from "./schema/payments.js";
 export * from "./schema/prescriptions.js";
+export * from "./schema/reports.js";
 export * from "./schema/reviews.js";
 export * from "./schema/userActivityLogs.js";
 export * from "./schema/userFeedback.js";
