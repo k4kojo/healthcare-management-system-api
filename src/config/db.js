@@ -3,18 +3,6 @@ import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "../db/schema.js";
 import { DATABASE_URI } from "./env.js";
 
-// Validate DATABASE_URI
-if (!DATABASE_URI) {
-  throw new Error('DATABASE_URI is not defined in environment variables');
-}
-
-if (!DATABASE_URI.startsWith('postgresql://')) {
-  throw new Error('DATABASE_URI must be a valid PostgreSQL connection string');
-}
-
-console.log('Initializing database connection...');
-console.log('Database URL format:', DATABASE_URI.replace(/:[^:@]+@/, ':***@')); // Hide password in logs
-
 // Create Neon connection with extended timeout and retry configuration
 const sql = neon(DATABASE_URI, {
   // Add connection options for better reliability

@@ -2,6 +2,7 @@ CREATE TYPE "public"."appointment_mode_enum" AS ENUM('Online', 'In-person');--> 
 CREATE TYPE "public"."appointment_status_enum" AS ENUM('pending', 'confirmed', 'cancelled', 'completed', 'rescheduled');--> statement-breakpoint
 CREATE TYPE "public"."payment_method_enum" AS ENUM('MTN MoMo', 'Telecel Cash', 'AirtelTigo Cash', 'Credit Card');--> statement-breakpoint
 CREATE TYPE "public"."payment_status_enum" AS ENUM('pending', 'partial', 'completed', 'failed', 'refunded', 'processing');--> statement-breakpoint
+CREATE TYPE "public"."medication_status_enum" AS ENUM('taken', 'skipped', 'missed');--> statement-breakpoint
 CREATE TABLE "appointments" (
 	"appointment_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"patient_id" uuid NOT NULL,
@@ -97,6 +98,40 @@ CREATE TABLE "medical_records" (
 	"updated_at" timestamp with time zone DEFAULT now()
 );
 --> statement-breakpoint
+CREATE TABLE "medications" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"patient_id" uuid NOT NULL,
+	"prescribed_by" uuid,
+	"name" varchar(255) NOT NULL,
+	"dosage" varchar(100) NOT NULL,
+	"frequency" varchar(100) NOT NULL,
+	"start_date" date NOT NULL,
+	"end_date" date,
+	"instructions" text,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "medication_logs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"medication_id" uuid NOT NULL,
+	"taken_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"status" "medication_status_enum" NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "medication_reminders" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"medication_id" uuid NOT NULL,
+	"remind_at" timestamp with time zone NOT NULL,
+	"sent" boolean DEFAULT false NOT NULL,
+	"sent_at" timestamp with time zone,
+	"message" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "notifications" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" uuid,
@@ -110,6 +145,23 @@ CREATE TABLE "notifications" (
 	"updated_at" timestamp with time zone DEFAULT now()
 );
 --> statement-breakpoint
+CREATE TABLE "patient_profiles" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
+	"national_id" varchar(100) DEFAULT null,
+	"username" varchar(100) DEFAULT null,
+	"gender" varchar(20) DEFAULT null,
+	"date_of_birth" varchar(30) DEFAULT null,
+	"phone_number" varchar(50) DEFAULT null,
+	"email" varchar(255) DEFAULT null,
+	"city" varchar(120) DEFAULT null,
+	"province" varchar(120) DEFAULT null,
+	"address" text DEFAULT null,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "patient_profiles_user_id_unique" UNIQUE("user_id")
+);
+--> statement-breakpoint
 CREATE TABLE "payments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"payment_id" uuid NOT NULL,
@@ -121,12 +173,13 @@ CREATE TABLE "payments" (
 	"provider_ref" varchar(255) DEFAULT '',
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone DEFAULT now(),
-	CONSTRAINT "payments_payment_id_unique" UNIQUE("payment_id")
+	CONSTRAINT "payments_payment_id_unique" UNIQUE("payment_id"),
+	CONSTRAINT "payments_provider_ref_unique" UNIQUE("provider_ref")
 );
 --> statement-breakpoint
 CREATE TABLE "prescriptions" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"appointment_id" uuid NOT NULL,
+	"appointment_id" uuid,
 	"doctor_id" uuid NOT NULL,
 	"medication" varchar NOT NULL,
 	"dosage" varchar NOT NULL,
@@ -137,6 +190,21 @@ CREATE TABLE "prescriptions" (
 	"file_url" varchar,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "reports" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"report_id" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"title" varchar(255) NOT NULL,
+	"content" text NOT NULL,
+	"type" varchar(50) NOT NULL,
+	"status" varchar(20) DEFAULT 'completed' NOT NULL,
+	"created_by" uuid NOT NULL,
+	"file_size" varchar(20) DEFAULT null,
+	"file_name" varchar(255) DEFAULT null,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "reports_report_id_unique" UNIQUE("report_id")
 );
 --> statement-breakpoint
 CREATE TABLE "reviews" (
@@ -176,7 +244,9 @@ CREATE TABLE "users" (
 	"email" varchar(255) NOT NULL,
 	"password" varchar(255) NOT NULL,
 	"phone_number" varchar NOT NULL,
-	"profile_picture" varchar DEFAULT null,
+	"date_of_birth" date,
+	"profile_picture" text DEFAULT null,
+	"profile_picture_type" varchar(50) DEFAULT null,
 	"role" text DEFAULT 'patient' NOT NULL,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"is_verified" boolean DEFAULT false NOT NULL,
@@ -234,11 +304,16 @@ ALTER TABLE "lab_results" ADD CONSTRAINT "lab_results_appointment_id_appointment
 ALTER TABLE "medical_records" ADD CONSTRAINT "medical_records_patient_id_users_user_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "medical_records" ADD CONSTRAINT "medical_records_doctor_id_users_user_id_fk" FOREIGN KEY ("doctor_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "medical_records" ADD CONSTRAINT "medical_records_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "medications" ADD CONSTRAINT "medications_patient_id_users_user_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."users"("user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "medications" ADD CONSTRAINT "medications_prescribed_by_users_user_id_fk" FOREIGN KEY ("prescribed_by") REFERENCES "public"."users"("user_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "medication_logs" ADD CONSTRAINT "medication_logs_medication_id_medications_id_fk" FOREIGN KEY ("medication_id") REFERENCES "public"."medications"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "medication_reminders" ADD CONSTRAINT "medication_reminders_medication_id_medications_id_fk" FOREIGN KEY ("medication_id") REFERENCES "public"."medications"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_user_id_users_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prescriptions" ADD CONSTRAINT "prescriptions_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prescriptions" ADD CONSTRAINT "prescriptions_doctor_id_users_user_id_fk" FOREIGN KEY ("doctor_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "reports" ADD CONSTRAINT "reports_created_by_users_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_patient_id_users_user_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_doctor_id_users_user_id_fk" FOREIGN KEY ("doctor_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

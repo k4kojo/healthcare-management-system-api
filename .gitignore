@@ -5,4 +5,4 @@ node_modules/
 .env.*.local
 
 # Seeded data
-src/db/seeds/*
+# src/db/seeds/*

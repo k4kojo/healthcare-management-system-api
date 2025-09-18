@@ -15,6 +15,7 @@ import doctorAvailabilityRouter from "./routes/doctor-availability.route.js";
 import doctorProfileRouter from "./routes/doctor-profile.route.js";
 import labResultsRouter from "./routes/lab-results.route.js";
 import medicalRecordsRouter from "./routes/medical-records.route.js";
+import medicationsRouter from "./routes/medications.route.js";
 import notificationsRouter from "./routes/notification.route.js";
 import patientProfileRouter from "./routes/patient-profile.route.js";
 import paymentsRouter from "./routes/payments.route.js";
@@ -57,6 +58,7 @@ app.use(`${API_PREFIX}/doctor-availability`, doctorAvailabilityRouter);
 app.use(`${API_PREFIX}/doctor-profiles`, doctorProfileRouter);
 app.use(`${API_PREFIX}/lab-results`, labResultsRouter);
 app.use(`${API_PREFIX}/medical-records`, medicalRecordsRouter);
+app.use(`${API_PREFIX}/medications`, medicationsRouter);
 app.use(`${API_PREFIX}/notifications`, notificationsRouter);
 app.use(`${API_PREFIX}/payments`, paymentsRouter);
 app.use(`${API_PREFIX}/prescriptions`, prescriptionsRouter);
@@ -72,6 +74,6 @@ app.use(`${API_PREFIX}/video-calls`, videoCallRouter);
 // Initialize WebRTC signaling
 handleWebRTCSignaling(io);
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening on http://localhost:${PORT} (also on LAN at http://<your-ip>:${PORT})`);
 });
