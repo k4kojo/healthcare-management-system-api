@@ -222,6 +222,38 @@ export const updateAppointment = async (req, res) => {
       .returning();
 
     console.log("✅ Appointment updated:", updated.appointmentId);
+
+    // Send notification to patient if status changed
+    if (parsed.data.status && parsed.data.status !== appointment.status) {
+      try {
+        const when = new Date(updated.appointmentDate);
+        const humanWhen = isNaN(when.getTime())
+          ? String(updated.appointmentDate)
+          : `${when.toDateString()} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+        let notificationMessage = "";
+        if (parsed.data.status === "confirmed") {
+          notificationMessage = `Your appointment for ${humanWhen} has been confirmed by the doctor.`;
+        } else if (parsed.data.status === "cancelled") {
+          notificationMessage = `Your appointment for ${humanWhen} has been cancelled by the doctor.`;
+        } else if (parsed.data.status === "rescheduled") {
+          notificationMessage = `Your appointment for ${humanWhen} has been rescheduled by the doctor.`;
+        }
+
+        if (notificationMessage) {
+          await db.insert(notifications).values({
+            userId: updated.patientId,
+            type: "appointment",
+            message: notificationMessage,
+            isGlobal: false,
+          });
+          console.log(`✅ Created notification for patient about status change to: ${parsed.data.status}`);
+        }
+      } catch (notifyErr) {
+        console.warn("⚠️ Failed to create notification for appointment status change:", notifyErr);
+      }
+    }
+
     res.json(updated);
   } catch (error) {
     console.error("❌ Error in updateAppointment:", error);
