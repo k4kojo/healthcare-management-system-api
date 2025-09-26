@@ -14,6 +14,11 @@ export const getMyPatientProfile = async (req, res) => {
 
     const safeUser = { ...authUser };
     delete safeUser.password;
+    
+    // Convert base64 profilePicture to data URI if it exists
+    if (safeUser.profilePicture && safeUser.profilePictureType) {
+      safeUser.profilePicture = `data:${safeUser.profilePictureType};base64,${safeUser.profilePicture}`;
+    }
 
     return res.json({ user: safeUser, profile: profile || null });
   } catch (error) {

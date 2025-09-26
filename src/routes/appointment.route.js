@@ -1,4 +1,3 @@
-// appointment.route.js
 import { Router } from "express";
 import {
   createAppointment,

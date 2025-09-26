@@ -165,12 +165,12 @@ export const verifyEmail = async (req, res) => {
     }
 
     const user = candidates[0];
-    const tokenValid = await bcrypt.compare(token, user.verificationToken);
+    const tokenValid = bcrypt.compare(token, user.verificationToken);
     if (!tokenValid) {
       return res.status(400).json({ error: "Invalid token" });
     }
 
-    await db
+    const [updatedUser] = await db
       .update(users)
       .set({
         isVerified: true,
@@ -178,10 +178,33 @@ export const verifyEmail = async (req, res) => {
         verificationTokenExpiry: null,
         updatedAt: new Date(),
       })
-      .where(eq(users.userId, user.userId));
+      .where(eq(users.userId, user.userId))
+      .returning();
+
+    // Generate new JWT token with updated verification status
+    const payload = {
+      userId: updatedUser.userId,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      isVerified: updatedUser.isVerified,
+    };
+
+    const jwtToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
     console.log("<- verifyEmail request successful");
-    res.json({ message: "Email verified successfully" });
+    res.json({ 
+      message: "Email verified successfully",
+      token: jwtToken,
+      user: {
+        userId: updatedUser.userId,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber,
+        role: updatedUser.role,
+        isVerified: updatedUser.isVerified,
+      }
+    });
   } catch (error) {
     console.error(`Error in verifyEmail: ${error.message}`, {
       stack: error.stack,
@@ -1090,6 +1113,7 @@ export const uploadProfilePicture = async (req, res) => {
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         email: updatedUser.email,
+        profilePicture: updatedUser.profilePicture ? `data:${updatedUser.profilePictureType};base64,${updatedUser.profilePicture}` : null,
         profilePictureType: updatedUser.profilePictureType,
         updatedAt: updatedUser.updatedAt,
       },

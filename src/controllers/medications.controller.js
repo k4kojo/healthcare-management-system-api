@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, gte, lte, or } from "drizzle-orm";
+import { eq, and, desc, asc, gte, lte, or, count } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { 
   medications, 
@@ -133,12 +133,12 @@ export async function getMedicationsByPatient(req, res) {
       .offset(offset);
 
     // Get total count for pagination
-    const [{ count }] = await db
-      .select({ count: medications.id })
+    const [{ count: totalCount }] = await db
+      .select({ count: count() })
       .from(medications)
       .where(and(...whereConditions));
 
-    const totalPages = Math.ceil(count / limit);
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.status(200).json({
       success: true,
@@ -147,7 +147,7 @@ export async function getMedicationsByPatient(req, res) {
         pagination: {
           currentPage: parseInt(page),
           totalPages,
-          totalItems: count,
+          totalItems: totalCount,
           itemsPerPage: parseInt(limit),
         },
       },
@@ -338,12 +338,12 @@ export async function getMedicationLogs(req, res) {
       .offset(offset);
 
     // Get total count
-    const [{ count }] = await db
-      .select({ count: medicationLogs.id })
+    const [{ count: totalCount }] = await db
+      .select({ count: count() })
       .from(medicationLogs)
       .where(and(...whereConditions));
 
-    const totalPages = Math.ceil(count / limit);
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.status(200).json({
       success: true,
@@ -352,7 +352,7 @@ export async function getMedicationLogs(req, res) {
         pagination: {
           currentPage: parseInt(page),
           totalPages,
-          totalItems: count,
+          totalItems: totalCount,
           itemsPerPage: parseInt(limit),
         },
       },
@@ -393,12 +393,12 @@ export async function getMedicationReminders(req, res) {
       .offset(offset);
 
     // Get total count
-    const [{ count }] = await db
-      .select({ count: medicationReminders.id })
+    const [{ count: totalCount }] = await db
+      .select({ count: count() })
       .from(medicationReminders)
       .where(and(...whereConditions));
 
-    const totalPages = Math.ceil(count / limit);
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.status(200).json({
       success: true,
@@ -407,7 +407,7 @@ export async function getMedicationReminders(req, res) {
         pagination: {
           currentPage: parseInt(page),
           totalPages,
-          totalItems: count,
+          totalItems: totalCount,
           itemsPerPage: parseInt(limit),
         },
       },

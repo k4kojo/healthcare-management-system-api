@@ -8,7 +8,17 @@
     "start": "node src/server.js",
     "seed": "node src/db/seeds/index.js",
     "seed:dev": "npm run seed",
-    "seed:test": "npm run seed"
+    "seed:test": "npm run seed",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:simple": "vitest run tests/simple.test.js",
+    "test:health": "vitest run tests/api/health.test.js",
+    "test:auth": "vitest run tests/api/auth.test.js",
+    "test:appointments": "vitest run tests/api/appointments.test.js",
+    "test:medications": "vitest run tests/api/medications.test.js"
   },
   "keywords": [],
   "author": "",
@@ -33,16 +43,20 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "pg": "^8.16.3",
-    "uuid": "^11.1.0",
     "socket.io": "^4.7.5",
+    "uuid": "^11.1.0",
     "zod": "^4.0.10"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
+    "@types/supertest": "^6.0.3",
+    "@vitest/ui": "^3.2.4",
+    "c8": "^10.1.3",
     "cross-env": "^10.0.0",
     "drizzle-kit": "^0.31.4",
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
-    "supertest": "^7.1.4"
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }
